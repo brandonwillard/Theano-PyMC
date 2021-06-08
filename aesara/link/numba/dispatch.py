@@ -17,6 +17,7 @@ from numba.extending import box
 from numba.np.unsafe.ndarray import to_fixed_tuple
 from numpy.core.multiarray import normalize_axis_index
 
+from aesara import config
 from aesara.compile.ops import DeepCopyOp, ViewOp
 from aesara.graph.basic import Apply, Variable
 from aesara.graph.fg import FunctionGraph
@@ -433,7 +434,13 @@ def numba_funcify_Elemwise(op, node, use_signature=False, identity=None, **kwarg
     else:
         signature = []
 
-    numba_vectorize = numba.vectorize(signature, identity=identity)
+    target = (
+        getattr(node.tag, "numba__vectorize_target", None)
+        or config.numba.vectorize_target
+    )
+
+    numba_vectorize = numba.vectorize(signature, identity=identity, target=target)
+
     global_env = {"scalar_op": scalar_op_fn, "numba_vectorize": numba_vectorize}
 
     elemwise_fn_name = f"elemwise_{get_name_for_object(scalar_op_fn)}"
